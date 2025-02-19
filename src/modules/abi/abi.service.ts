@@ -7,7 +7,7 @@ import { Warp } from './dtos/warp.dto';
 export class AbiService {
   constructor() {}
 
-  async generateWarps(requestBody: GenerateWarpRequestDto): Promise<Warp[]> {
+  generateWarps(requestBody: GenerateWarpRequestDto): Warp[] {
     const warpGenerator = new AbiWarpGenerator(
       requestBody.creator,
       requestBody.abiJson,

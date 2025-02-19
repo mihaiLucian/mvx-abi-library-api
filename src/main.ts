@@ -1,12 +1,13 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, VersioningType } from '@nestjs/common';
+import { VersioningType } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { config } from 'dotenv';
 import { SwaggerDocumentBuilder } from './swagger/swagger-document-builder';
 import { PublicAppModule } from './public.app.module';
 
 async function bootstrap() {
-  require('dotenv').config();
+  config(); // Initialize dotenv
   const app = await NestFactory.create<NestExpressApplication>(
     PublicAppModule,
     {

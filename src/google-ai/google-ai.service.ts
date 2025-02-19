@@ -12,7 +12,7 @@ export class GoogleAiService {
     this.apiKey = process.env.GOOGLE_AI_KEY;
     this.client = new GoogleGenerativeAI(this.apiKey);
   }
-  
+
   async chatCompletion(prompt: string) {
     const model = this.client.getGenerativeModel({ model: 'gemini-1.5-flash' });
 

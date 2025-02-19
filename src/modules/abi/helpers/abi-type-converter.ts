@@ -20,10 +20,10 @@ const NUMERIC_TYPES = [
   AbiBaseType.Usize,
 ];
 
-export type ParseOptions = {
+export interface ParseOptions {
   parseJson?: boolean;
   decodeBase64?: boolean;
-};
+}
 
 /**
  * Parser for MultiversX ABI hex responses
@@ -92,8 +92,11 @@ export class AbiTypeConverter {
    * @returns {T} Parsed response data
    * @throws {AbiParserError} When parsing fails
    */
-  public parseHexResponse<T>(hexResponses: Buffer[], responseType: string): T {
-    const result: any[] = [];
+  public parseHexResponse<T extends unknown>(
+    hexResponses: Buffer[],
+    responseType: string,
+  ): T {
+    const result: unknown[] = [];
     const originalIsPrimitive = this.isPrimitiveType(
       responseType.replace(/^variadic<(.+)>$/, '$1'),
     );
@@ -134,7 +137,7 @@ export class AbiTypeConverter {
       result.push(parsedData);
     }
 
-    return result.length === 1 ? result[0] : result;
+    return (result.length === 1 ? result[0] : result) as T;
   }
 
   /**
@@ -160,7 +163,7 @@ export class AbiTypeConverter {
   private readHex(
     data: Buffer,
     objectType: string,
-    originalTypeIsPrimitive: boolean = false,
+    originalTypeIsPrimitive = false,
   ): [any, number] {
     try {
       // Handle empty data
@@ -297,7 +300,9 @@ export class AbiTypeConverter {
             if (decoded.startsWith('{') || decoded.startsWith('[')) {
               return [this.safeJsonParse(decoded), objLen + 4];
             }
-          } catch {}
+          } catch {
+            console.warn('Failed to parse JSON from base64 string');
+          }
           return [decoded, objLen + 4];
         }
         return [value, objLen + 4];

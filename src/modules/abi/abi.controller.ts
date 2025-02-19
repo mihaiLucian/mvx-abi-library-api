@@ -20,9 +20,7 @@ export class AbiController {
   @ApiBody({ type: GenerateWarpRequestDto })
   @UsePipes(new RequestBodyValidationPipe(GenerateWarpRequestDto))
   @Post('generateWarps')
-  async generateWarps(
-    @Body() jsonBody: GenerateWarpRequestDto,
-  ): Promise<Warp[]> {
-    return await this.abiService.generateWarps(jsonBody);
+  generateWarps(@Body() jsonBody: GenerateWarpRequestDto): Warp[] {
+    return this.abiService.generateWarps(jsonBody);
   }
 }

@@ -33,7 +33,7 @@ export class AbiWarpGenerator {
   private abi: AbiDefinition;
   private readonly meta: WarpMeta;
 
-  constructor(creator: string = 'system', abi: AbiDefinition) {
+  constructor(creator = 'system', abi: AbiDefinition) {
     this.abi = abi;
     this.meta = {
       hash: '',
