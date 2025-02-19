@@ -191,32 +191,38 @@ export class AbiWarpGenerator {
       'variadic<': 'variadic:',
     };
 
-    // Check for nested types using defined patterns
-    for (const pattern in nestedTypesMapping) {
+    // Handle nested types recursively
+    for (const [pattern, replacement] of Object.entries(nestedTypesMapping)) {
       if (abiType.startsWith(pattern)) {
-        const endBracket = abiType.indexOf('>');
-        if (endBracket === -1) {
-          throw new Error(`Invalid format: missing closing ">" in ${abiType}`);
+        // Find matching closing bracket by counting brackets
+        let bracketCount = 1;
+        let closingIndex = pattern.length;
+
+        while (bracketCount > 0 && closingIndex < abiType.length) {
+          if (abiType[closingIndex] === '<') bracketCount++;
+          if (abiType[closingIndex] === '>') bracketCount--;
+          closingIndex++;
         }
-        // Extract inner type between the pattern and the closing ">"
-        const innerType = abiType.slice(pattern.length, endBracket).trim();
-        // Recursively convert the inner type
+
+        if (bracketCount !== 0) {
+          throw new Error(`Invalid format: unmatched brackets in ${abiType}`);
+        }
+
+        // Extract and convert inner type
+        const innerType = abiType
+          .slice(pattern.length, closingIndex - 1)
+          .trim();
         const convertedInner = this.convertType(innerType);
-        // Append any default or additional suffix if available (if your format supports it)
-        const suffix = abiType.slice(endBracket + 1);
-        return `${nestedTypesMapping[pattern]}${convertedInner}${suffix}`;
+
+        // Handle any remaining type information after the closing bracket
+        const remainder = abiType.slice(closingIndex).trim();
+
+        return `${replacement}${convertedInner}${remainder}`;
       }
     }
 
-    // Fallback: a base type (using TYPE_MAPPINGS)
-    const mapped = WARP_TYPE_MAPPINGS[abiType];
-
-    // if (!mapped) {
-    //   throw new Error(`Type mapping not found for ABI type: ${abiType}`);
-    // }
-
-    return mapped;
-    // throw new Error(`Type mapping not found for ABI type: ${abiType}`);
+    // Handle base types
+    return WARP_TYPE_MAPPINGS[abiType] || abiType;
   }
 
   private getInputValidations(input: AbiInput): Partial<WarpActionInput> {
