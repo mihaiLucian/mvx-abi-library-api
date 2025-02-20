@@ -12,27 +12,22 @@ import {
   AbiInput,
 } from '../types/abi.types';
 import { GenericUtils } from 'src/common/utils/generic.utils';
+import { WARP_CONSTANTS } from '../constants/warp.constants';
+import { InvalidInputError, InvalidTypeError } from '../types/errors.types';
 
-const WARP_PROTOCOL_VERSION = 'warp:0.4.0';
-const DEFAULT_GAS_LIMIT = 60000000;
-const WARP_TYPE_MAPPINGS: Record<string, string> = {
-  Address: 'address',
-  BigUint: 'biguint',
-  u8: 'uint8',
-  i8: 'int8',
-  u16: 'uint16',
-  u32: 'uint32',
-  u64: 'uint64',
-  bool: 'bool',
-  bytes: 'string',
-  TokenIdentifier: 'token',
-  EgldOrEsdtTokenIdentifier: 'token',
-};
-
+/**
+ * AbiWarpGenerator class handles the transformation of MultiversX ABI definitions
+ * into Warp-compatible format for smart contract interaction.
+ */
 export class AbiWarpGenerator {
-  private abi: AbiDefinition;
+  private readonly abi: AbiDefinition;
   private readonly meta: WarpMeta;
 
+  /**
+   * Creates a new instance of AbiWarpGenerator
+   * @param creator - The creator identifier for the Warp definitions
+   * @param abi - The ABI definition to be transformed
+   */
   constructor(creator = 'system', abi: AbiDefinition) {
     this.abi = abi;
     this.meta = {
@@ -42,7 +37,16 @@ export class AbiWarpGenerator {
     };
   }
 
+  /**
+   * Generates Warp definitions for all public endpoints in the contract
+   * @param contractAddress - The address of the smart contract
+   * @returns Array of Warp definitions
+   */
   public generateWarps(contractAddress: string): Warp[] {
+    if (!contractAddress?.startsWith('erd1')) {
+      throw new InvalidInputError('Invalid contract address format');
+    }
+
     const publicEndpoints = this.abi.endpoints.filter(
       (endpoint) => !endpoint.onlyOwner,
     );
@@ -79,7 +83,9 @@ export class AbiWarpGenerator {
       description: endpoint.docs?.join('\n') ?? null,
       inputs: [...paymentInputs, ...regularInputs],
       gasLimit:
-        actionType === WarpActionType.Contract ? DEFAULT_GAS_LIMIT : undefined,
+        actionType === WarpActionType.Contract
+          ? WARP_CONSTANTS.DEFAULT_GAS_LIMIT
+          : undefined,
     };
 
     let description: string;
@@ -94,7 +100,7 @@ export class AbiWarpGenerator {
     }
 
     return {
-      protocol: WARP_PROTOCOL_VERSION,
+      protocol: WARP_CONSTANTS.PROTOCOL_VERSION,
       name: `${contractName}:${endpoint.name}`,
       title: `${GenericUtils.capitalizeFirstLetter(endpoint.name)} operation`,
       description,
@@ -179,50 +185,93 @@ export class AbiWarpGenerator {
     };
   }
 
-  convertType(abiType: string): string {
+  /**
+   * Converts ABI types to Warp-compatible types
+   * @param abiType - The ABI type to convert
+   * @returns The corresponding Warp type
+   * @throws {InvalidTypeError} If the type is invalid or cannot be converted
+   */
+  public convertType(abiType: string): string {
     if (!abiType) {
-      throw new Error('ABI type is required');
+      throw new InvalidTypeError('ABI type is required');
     }
 
-    const nestedTypesMapping = {
-      'Option<': 'option:',
-      'optional<': 'optional:',
-      'List<': 'list:',
-      'variadic<': 'variadic:',
-    };
-
-    // Handle nested types recursively
-    for (const [pattern, replacement] of Object.entries(nestedTypesMapping)) {
-      if (abiType.startsWith(pattern)) {
-        // Find matching closing bracket by counting brackets
-        let bracketCount = 1;
-        let closingIndex = pattern.length;
-
-        while (bracketCount > 0 && closingIndex < abiType.length) {
-          if (abiType[closingIndex] === '<') bracketCount++;
-          if (abiType[closingIndex] === '>') bracketCount--;
-          closingIndex++;
-        }
-
-        if (bracketCount !== 0) {
-          throw new Error(`Invalid format: unmatched brackets in ${abiType}`);
-        }
-
-        // Extract and convert inner type
-        const innerType = abiType
-          .slice(pattern.length, closingIndex - 1)
-          .trim();
-        const convertedInner = this.convertType(innerType);
-
-        // Handle any remaining type information after the closing bracket
-        const remainder = abiType.slice(closingIndex).trim();
-
-        return `${replacement}${convertedInner}${remainder}`;
+    try {
+      // First check if it's a custom type defined in abi.types
+      if (this.abi.types && this.abi.types[abiType]) {
+        return this.convertCustomType(abiType);
       }
+
+      const nestedTypesMapping = {
+        'Option<': 'option:',
+        'optional<': 'optional:',
+        'List<': 'list:',
+        'variadic<': 'variadic:',
+      };
+
+      // Handle nested types recursively
+      for (const [pattern, replacement] of Object.entries(nestedTypesMapping)) {
+        if (abiType.startsWith(pattern)) {
+          // Find matching closing bracket by counting brackets
+          let bracketCount = 1;
+          let closingIndex = pattern.length;
+
+          while (bracketCount > 0 && closingIndex < abiType.length) {
+            if (abiType[closingIndex] === '<') bracketCount++;
+            if (abiType[closingIndex] === '>') bracketCount--;
+            closingIndex++;
+          }
+
+          if (bracketCount !== 0) {
+            throw new Error(`Invalid format: unmatched brackets in ${abiType}`);
+          }
+
+          // Extract and convert inner type
+          const innerType = abiType
+            .slice(pattern.length, closingIndex - 1)
+            .trim();
+          const convertedInner = this.convertType(innerType);
+
+          // Handle any remaining type information after the closing bracket
+          const remainder = abiType.slice(closingIndex).trim();
+
+          return `${replacement}${convertedInner}${remainder}`;
+        }
+      }
+
+      // Handle base types
+      return WARP_CONSTANTS.TYPE_MAPPINGS[abiType] || abiType;
+    } catch (error) {
+      throw new InvalidTypeError(`Type conversion failed: ${error.message}`);
+    }
+  }
+
+  private convertCustomType(typeName: string): string {
+    const customType = this.abi.types[typeName];
+
+    if (!customType) {
+      throw new Error(`Type ${typeName} not found in ABI definitions`);
     }
 
-    // Handle base types
-    return WARP_TYPE_MAPPINGS[abiType] || abiType;
+    if (customType.type === 'enum') {
+      // For enums, we'll use a simple u64 type with options
+      return WARP_CONSTANTS.TYPE_MAPPINGS.u64;
+    }
+
+    if (customType.type === 'struct') {
+      // For structs, create a composite type
+      const fieldTypes = customType.fields.map(
+        (field: { type: string; name: any }) => {
+          // Recursively convert field types
+          const convertedType = this.convertType(field.type);
+          return `${field.name}:${convertedType}`;
+        },
+      );
+
+      return `composite(${fieldTypes.join('|')})`;
+    }
+
+    throw new Error(`Unsupported custom type: ${customType.type}`);
   }
 
   private getInputValidations(input: AbiInput): Partial<WarpActionInput> {
@@ -234,6 +283,7 @@ export class AbiWarpGenerator {
 
     switch (true) {
       case input.type.includes(AbiBaseType.BigUint):
+        // TODO: Think of a smarter way to get token decimals for ESDTs
         Object.assign(validations, {
           min: 0,
           modifier: input.type === AbiBaseType.BigUint ? 'scale:18' : undefined,
@@ -242,7 +292,7 @@ export class AbiWarpGenerator {
 
       case input.type.includes(AbiBaseType.Address):
         Object.assign(validations, {
-          pattern: '^erd1[a-zA-Z0-9]{58}$',
+          pattern: WARP_CONSTANTS.REGEX_PATTERNS.MULTIVERSX_ADDRESS,
           patternDescription: 'Must be a valid MultiversX address',
         });
         break;
@@ -250,7 +300,7 @@ export class AbiWarpGenerator {
       case input.type.includes(AbiBaseType.TokenIdentifier):
       case input.type.includes(AbiBaseType.EgldOrEsdtTokenIdentifier):
         Object.assign(validations, {
-          pattern: '^(EGLD|[A-Z0-9]{3,10}(-[a-fA-F0-9]{6})?)$',
+          pattern: WARP_CONSTANTS.REGEX_PATTERNS.TOKEN_IDENTIFIER,
           patternDescription: 'Must be EGLD or a valid token identifier',
         });
         break;

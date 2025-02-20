@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiExtraModels, ApiProperty } from '@nestjs/swagger';
 
 export enum WarpActionType {
   Contract = 'contract',
@@ -117,7 +117,7 @@ export class WarpActionInput {
 
   @ApiProperty({
     description: 'Predefined options for the input',
-    example: ['option1', 'option2'],
+    example: 'option1',
     isArray: true,
     required: false,
   })
@@ -160,7 +160,7 @@ export class WarpContractAction {
 
   @ApiProperty({
     description: 'Fixed set of typed arguments for the contract',
-    example: ['string:arg1', 'uint64:123'],
+    example: 'string:arg1',
     isArray: true,
   })
   args: string[];
@@ -180,7 +180,7 @@ export class WarpContractAction {
 
   @ApiProperty({
     description: 'Token transfers to be performed',
-    type: [WarpContractActionTransfer],
+    type: WarpContractActionTransfer,
     isArray: true,
     required: false,
   })
@@ -188,7 +188,7 @@ export class WarpContractAction {
 
   @ApiProperty({
     description: 'User-defined inputs for value or positional args',
-    type: [WarpActionInput],
+    type: WarpActionInput,
     isArray: true,
     required: false,
   })
@@ -238,7 +238,7 @@ export class WarpQueryAction {
 
   @ApiProperty({
     description: 'Fixed set of typed arguments for the query',
-    example: ['string:arg1'],
+    example: 'string:arg1',
     isArray: true,
   })
   args: string[];
@@ -252,7 +252,7 @@ export class WarpQueryAction {
 
   @ApiProperty({
     description: 'User-defined inputs for positional args',
-    type: [WarpActionInput],
+    type: WarpActionInput,
     isArray: true,
     required: false,
   })
@@ -297,7 +297,7 @@ export class WarpCollectAction {
 
   @ApiProperty({
     description: 'User-defined inputs to be collected',
-    type: [WarpActionInput],
+    type: WarpActionInput,
     isArray: true,
     required: false,
   })
@@ -341,7 +341,7 @@ export class WarpLinkAction {
 
   @ApiProperty({
     description: 'User-defined inputs',
-    type: [WarpActionInput],
+    type: WarpActionInput,
     isArray: true,
     required: false,
   })
@@ -351,14 +351,28 @@ export class WarpLinkAction {
     description: 'Description of the link',
     example: 'Go to the documentation',
     nullable: true,
-    required: false,
   })
   description?: string | null;
 }
 
-export interface WarpMeta {
+export class WarpMeta {
+  @ApiProperty({
+    description: 'Hash of the on chain inscription',
+    example: 'abc123',
+    required: false,
+  })
   hash: string;
+
+  @ApiProperty({
+    description: 'Creator of the warp',
+    example: 'user123',
+  })
   creator: string;
+
+  @ApiProperty({
+    description: 'Creation timestamp of the warp',
+    example: '2023-01-01T00:00:00Z',
+  })
   createdAt: string;
 }
 
@@ -368,6 +382,12 @@ export type WarpAction =
   | WarpCollectAction
   | WarpLinkAction;
 
+@ApiExtraModels(
+  WarpContractAction,
+  WarpQueryAction,
+  WarpCollectAction,
+  WarpLinkAction,
+)
 export class Warp {
   @ApiProperty({
     description: 'Specifies the protocol and version of the warp',
@@ -403,6 +423,12 @@ export class Warp {
   @ApiProperty({
     description: 'An array of actions that can be performed by the warp',
     example: '[{ type: "Collect", label: "Collect Data", ... }]',
+    oneOf: [
+      { $ref: '#/components/schemas/WarpContractAction' },
+      { $ref: '#/components/schemas/WarpQueryAction' },
+      { $ref: '#/components/schemas/WarpCollectAction' },
+      { $ref: '#/components/schemas/WarpLinkAction' },
+    ],
     isArray: true,
   })
   actions: WarpAction[];
@@ -432,19 +458,3 @@ export class Warp {
   })
   vars?: Record<string, string>;
 }
-
-export const WARP_PROTOCOL_VERSION = 'warp:0.4.0';
-export const DEFAULT_GAS_LIMIT = 60000000;
-export const WARP_TYPE_MAPPINGS: Record<string, string> = {
-  Address: 'address',
-  BigUint: 'biguint',
-  u8: 'uint8',
-  i8: 'int8',
-  u16: 'uint16',
-  u32: 'uint32',
-  u64: 'uint64',
-  bool: 'bool',
-  bytes: 'string',
-  TokenIdentifier: 'token',
-  EgldOrEsdtTokenIdentifier: 'token',
-};
