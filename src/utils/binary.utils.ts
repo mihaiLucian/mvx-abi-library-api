@@ -14,7 +14,7 @@ export class BinaryUtils {
     return base64DecodeBinary(str).toString('binary');
   }
 
-  static tryBase64ToBigInt(str: string): BigInt | undefined {
+  static tryBase64ToBigInt(str: string): bigint | undefined {
     try {
       return this.base64ToBigInt(str);
     } catch {
@@ -22,7 +22,7 @@ export class BinaryUtils {
     }
   }
 
-  static base64ToBigInt(str: string): BigInt {
+  static base64ToBigInt(str: string): bigint {
     const hex = this.base64ToHex(str);
     return BigInt(hex ? '0x' + hex : hex);
   }
@@ -67,7 +67,7 @@ export class BinaryUtils {
     return Buffer.from(hex, 'hex').toString('base64');
   }
 
-  static hexToBigInt(hex: string): BigInt {
+  static hexToBigInt(hex: string): bigint {
     if (!hex) {
       return BigInt(0);
     }

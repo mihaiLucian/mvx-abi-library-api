@@ -321,7 +321,7 @@ export class CosmosDbService {
         }
 
         // Retry only the failed operations with exponential backoff
-        let initialSleep = 100;
+        const initialSleep = 100;
         retries++;
         const backoffTime = Math.pow(2, retries) * initialSleep; // Exponential backoff
 

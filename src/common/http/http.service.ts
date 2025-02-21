@@ -24,7 +24,6 @@ export class HttpService {
 
   private setupInterceptors(): void {
     this.httpService.axiosRef.interceptors.request.use((config) => {
-      //   this.logger.debug(`Making request to ${config.url}`);
       return config;
     });
 
@@ -35,7 +34,10 @@ export class HttpService {
       },
       (error) => {
         this.logger.error(`Request failed: ${error.message}`);
-        return Promise.reject(error);
+        // Ensure we're rejecting with an Error object
+        return Promise.reject(
+          error instanceof Error ? error : new Error(error),
+        );
       },
     );
   }
@@ -88,13 +90,23 @@ export class HttpService {
               return timer(retryDelay);
             },
           }),
-          catchError((error) => throwError(() => this.handleError(error))),
+          catchError((error) => {
+            const handledError: unknown = this.handleError(error);
+            return throwError(() =>
+              handledError instanceof Error
+                ? handledError
+                : new Error(String(handledError)),
+            );
+          }),
         ),
       );
 
       return response.data;
     } catch (error) {
-      throw this.handleError(error);
+      const handledError: unknown = this.handleError(error);
+      throw handledError instanceof Error
+        ? handledError
+        : new Error(String(handledError));
     }
   }
 
