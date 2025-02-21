@@ -32,7 +32,7 @@ import { Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
 import { Address } from '@multiversx/sdk-core';
-import { AbiTypeConverter } from 'src/modules/abi/helpers/abi-type-converter';
+import { AbiTypeConverter } from 'src/features/abi/helpers/abi-type-converter';
 
 @Injectable()
 export class SmartContractService {

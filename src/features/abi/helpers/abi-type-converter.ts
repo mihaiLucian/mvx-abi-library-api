@@ -4,7 +4,7 @@ import {
   AbiBaseType,
   AbiDefinition,
   AbiTypePattern,
-} from 'src/modules/abi/types/abi.types';
+} from 'src/features/abi/types/abi.types';
 
 const NUMERIC_TYPES = [
   AbiBaseType.U8,

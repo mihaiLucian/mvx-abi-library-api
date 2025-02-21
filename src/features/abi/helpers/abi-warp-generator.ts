@@ -11,7 +11,7 @@ import {
   AbiEndpoint,
   AbiInput,
 } from '../types/abi.types';
-import { GenericUtils } from 'src/common/utils/generic.utils';
+import { GenericUtils } from 'src/utils/generic.utils';
 import { WARP_CONSTANTS } from '../constants/warp.constants';
 import { InvalidInputError, InvalidTypeError } from '../types/errors.types';
 

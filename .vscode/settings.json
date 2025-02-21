@@ -14,5 +14,6 @@
       "background": "#414546"
     }
   },
-  "sarif-viewer.connectToGithubCodeScanning": "off"
+  "sarif-viewer.connectToGithubCodeScanning": "off",
+  "typescript.preferences.autoImportFileExcludePatterns": ["@nestjs/axios/*"]
 }
