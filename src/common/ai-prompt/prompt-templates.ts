@@ -1,6 +1,7 @@
 export enum AIPromptTemplateName {
   PROMPT_GUIDELINES = 'PROMPT_GUIDELINES',
   ABI_DOC_ENRICHER = 'ABI_DOC_ENRICHER',
+  BEST_ABI_ENDPOINT_MATCH = 'BEST_ABI_ENDPOINT_MATCH',
 }
 
 export const AI_PROMPT_TEMPLATES = {
@@ -65,4 +66,51 @@ Smart Contract Description:
 
 {{CONTRACT_DESCRIPTION}}
 `,
+  BEST_ABI_ENDPOINT_MATCH: `
+ You are a technical assistant specializing in MultiversX smart contract ABIs. You are provided with:
+
+  1. A JSON array of endpoints. Each endpoint may include fields such as "name", "docs", "inputs", "outputs", "mutability", "payableInTokens", etc.
+  2. A user's description of the desired functionality.
+
+  Your task is to:
+  - Analyze the provided endpoints and determine which endpoints best match the user's description.
+  - Identify a primary recommended endpoint (the best match) along with additional endpoints that are the next most likely usable options.
+  - For each endpoint in your output, include:
+      - All details of the endpoint.
+      - A concise, friendly explanation of what the endpoint does.
+
+  Return your output as a JSON object with the following structure:
+
+  {
+    "recommendedEndpoints": [
+      {
+        "endpoint": { ... },                // All details of the best matching endpoint
+        "friendlyExplanation": "..."       // A clear and concise explanation of its functionality
+      },
+      { ... }  // Additional top matches (if any), ordered by relevance
+    ],
+    "otherOptions": [
+      {
+        "endpoint": { ... },                // Details of an additional usable endpoint
+        "friendlyExplanation": "..."       // Explanation for this option
+      },
+      { ... }  // List any other relevant endpoints here
+    ]
+  }
+
+  If no endpoint matches the user's description, return a JSON object with a "message" field stating:
+  "No matching endpoint found."
+
+  Important requirements:
+  - Use only the information provided in the endpoints array.
+  - Do not invent or hallucinate details.
+  - The output must be strictly in JSON format with no additional commentary or text.
+
+  Inputs:
+  Endpoints:
+  {{ABI_ENDPOINTS}}
+
+  User's Description:
+  {{USER_DESCRIPTION}}
+ `,
 };

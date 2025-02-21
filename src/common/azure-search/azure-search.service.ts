@@ -25,6 +25,7 @@ export class AzureSearchService {
     this.userDataClient = this.getSearchClient('abi-data');
   }
 
+  // TODO: Allow custom top and other options
   async hybridSearch(text: string, vector: number[]) {
     const searchResults = await this.userDataClient.search(text, {
       vectorSearchOptions: {
@@ -38,6 +39,28 @@ export class AzureSearchService {
           },
         ],
       },
+      top: 10,
+    });
+
+    const results: any[] = [];
+
+    for await (const result of searchResults.results) {
+      results.push({
+        ...result.document,
+      });
+    }
+
+    return results;
+  }
+
+  async deleteAllDocuments(docs: any[]) {
+    await this.userDataClient.deleteDocuments(docs);
+  }
+
+  // TODO: review this
+  async search(text: string) {
+    const searchResults = await this.userDataClient.search('*', {
+      top: 1000,
     });
 
     const results: any[] = [];

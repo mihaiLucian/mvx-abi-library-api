@@ -17,13 +17,15 @@ import {
   SmartContractDoc,
   SmartContractLibraryDto,
 } from './dtos/contract-details.dto';
+import { AzureSearchService } from 'src/common/azure-search/azure-search.service';
 
 @Injectable()
 export class AbiService {
   constructor(
-    private readonly cosmosDbService: CosmosDbService,
-    private readonly googleAiService: GoogleAiService,
     private readonly httpService: HttpService,
+    private readonly googleAiService: GoogleAiService,
+    private readonly cosmosDbService: CosmosDbService,
+    private readonly azureSearchService: AzureSearchService,
   ) {}
 
   generateWarps(requestBody: GenerateWarpRequestDto): Warp[] {
@@ -114,6 +116,13 @@ export class AbiService {
 
     console.log(allContracts.length);
 
+    // know template contracts:
+    // - xExchange: Pool
+    // - xExchange: Farm
+    // - xExchange: name contains MetaStaked
+    // - xLaunchpad: name starts with xLaunchpad
+    // erd1qqqqqqqqqqqqqpgqpa3pdmemt5l2ex80g7pksr2ettt955d66avsz76hyt
+
     const allVerified = allContracts.filter(
       (contract) =>
         // contract.isVerified &&
@@ -201,6 +210,66 @@ export class AbiService {
     return allVerifiedWithAbi;
   }
 
+  async addContractManually() {
+    const abiJson = await this.httpService.get<any>(
+      'https://trustmarket.blob.core.windows.net/smartcontractabi/staking-xoxno.json',
+    );
+
+    if (abiJson) {
+      const name = 'XOXNO: NFT Staking';
+      const description =
+        'NFT Staking allows users to stake their NFTs and earn rewards. Creators are able to create and manage their own staking pools';
+      const address =
+        'erd1qqqqqqqqqqqqqpgqvpkd3g3uwludduv3797j54qt6c888wa59w2shntt6z';
+
+      const simplifiedAbi: AbiDefinition = {
+        name: name,
+        endpoints: abiJson.endpoints,
+      };
+
+      const prompt = PromptGenerator.renderTemplate(
+        AIPromptTemplateName.ABI_DOC_ENRICHER,
+        {
+          ABI_JSON: JSON.stringify(simplifiedAbi),
+          CONTRACT_DESCRIPTION: description,
+          CONTRACT_NAME: name,
+        },
+      );
+
+      const aiResponse = await this.googleAiService.chatCompletion(prompt);
+      const aiResponseParsed = this.extractMarkdownJson(aiResponse.text);
+
+      abiJson.endpoints.forEach((endpoint) => {
+        if (aiResponseParsed[endpoint.name]) {
+          endpoint.docs = [aiResponseParsed[endpoint.name]];
+        }
+        if (endpoint.docs?.length) {
+          endpoint.docs = endpoint.docs.map((doc) => doc.trim());
+        }
+      });
+
+      const dbDocument = {
+        dataType: 'sc-info',
+        address: address,
+        name,
+        description,
+        ownerAddress:
+          'erd1vn9s8uj4e7r6skmqfw5py3hxnluw3ftv6dh47yt449vtvdnn9w2stmwm7l',
+        abiJson,
+        codeHash: '',
+        id: `sc_${address}`,
+        // tags: contract?.assets?.tags,
+        pk: address,
+      };
+
+      await this.cosmosDbService.upsertItem(dbDocument);
+
+      return dbDocument as any;
+    } else {
+      throw new Error('Failed to fetch ABI JSON');
+    }
+  }
+
   async getContractByAddress(address: string) {
     const id = `sc_${address}`;
     const resources = await this.cosmosDbService.readItem<any>(id, address);
@@ -222,5 +291,124 @@ export class AbiService {
       await this.cosmosDbService.queryWithFetchAll<any>(querySpec);
 
     return resources as SmartContractLibraryDto[];
+  }
+
+  async generateAndIngestEmbeddingsForEndpoints(contractDoc: SmartContractDoc) {
+    const parsedData: any[] = [];
+    for (const endpoint of contractDoc.abiJson.endpoints) {
+      const embeddingResponse = await this.googleAiService.generateEmbedding(
+        endpoint.docs[0],
+      );
+
+      parsedData.push({
+        name: endpoint.name,
+        description: endpoint.docs[0],
+        type: 'endpoint',
+        id: `${contractDoc.address}_${endpoint.name}`,
+        embeddings: embeddingResponse.embedding.values,
+      });
+    }
+
+    await this.azureSearchService.mergeOrUploadDocuments(parsedData);
+
+    return parsedData;
+  }
+
+  async generateAndIngestEmbeddingsForAllContracts() {
+    const querySpec = new CosmosDbQueryBuilder()
+      .where('dataType', 'sc-info', QueryConditionOperator.EQUAL)
+      .buildSqlQuery();
+
+    const resources =
+      await this.cosmosDbService.queryWithFetchAll<SmartContractDoc[]>(
+        querySpec,
+      );
+
+    for (const contractDoc of resources) {
+      await this.generateAndIngestEmbeddingsForEndpoints(contractDoc);
+    }
+
+    return resources;
+  }
+
+  async searchContracts(query: string) {
+    const embeddingResponse =
+      await this.googleAiService.generateEmbedding(query);
+
+    const searchResults = await this.azureSearchService.hybridSearch(
+      query,
+      embeddingResponse.embedding.values,
+    );
+
+    const prompt = PromptGenerator.renderTemplate(
+      AIPromptTemplateName.BEST_ABI_ENDPOINT_MATCH,
+      {
+        ABI_ENDPOINTS: JSON.stringify(searchResults),
+        USER_DESCRIPTION: query,
+      },
+    );
+    const aiResponse = await this.googleAiService.chatCompletion(prompt);
+    const aiResponseParsed = this.extractMarkdownJson(aiResponse.text);
+
+    const { recommendedEndpoints, otherOptions } = aiResponseParsed;
+
+    const contractCaches = new Map<string, SmartContractDoc>();
+    const bestMatchEndpoints = [];
+    if (recommendedEndpoints) {
+      for (let index = 0; index < recommendedEndpoints.length; index++) {
+        const element = recommendedEndpoints[index];
+
+        const [address, endpoint] = element.endpoint.id.split('_');
+        let contract = contractCaches.get(address);
+        if (!contract) {
+          contract = await this.getContractByAddress(address);
+          contractCaches.set(address, contract);
+        }
+
+        const endpointDetails = contract.abiJson.endpoints.find(
+          (e) => e.name === endpoint,
+        );
+        if (endpointDetails) {
+          bestMatchEndpoints.push({
+            address,
+            name: contract.name,
+            description: contract.description,
+            endpoint: endpointDetails,
+            friendlyExplanation:
+              recommendedEndpoints[index].friendlyExplanation,
+          });
+        }
+      }
+    }
+
+    const otherSuggestions = [];
+    if (otherOptions) {
+      for (let index = 0; index < otherOptions.length; index++) {
+        const element = otherOptions[index];
+        const [address, endpoint] = element.endpoint.id.split('_');
+        let contract = contractCaches.get(address);
+        if (!contract) {
+          contract = await this.getContractByAddress(address);
+          contractCaches.set(address, contract);
+        }
+        const endpointDetails = contract.abiJson.endpoints.find(
+          (e) => e.name === endpoint,
+        );
+        if (endpointDetails) {
+          otherSuggestions.push({
+            address,
+            name: contract.name,
+            description: contract.description,
+            endpoint: endpointDetails,
+            friendlyExplanation: otherOptions[index].friendlyExplanation,
+          });
+        }
+      }
+    }
+
+    return {
+      bestMatchEndpoints,
+      otherSuggestions,
+    };
   }
 }

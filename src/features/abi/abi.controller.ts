@@ -41,7 +41,26 @@ export class AbiController {
   })
   @Get('library')
   async getLibrary(): Promise<SmartContractLibraryDto[]> {
-    return this.abiService.getContracts();
+    return this.abiService.generateAndIngestEmbeddingsForAllContracts();
+  }
+
+  @Version('beta')
+  @ApiOperation({ summary: 'Search for smart contracts' })
+  @ApiQuery({
+    name: 'query',
+    description: 'Search query',
+    type: String,
+    required: true,
+    example: 'I want to stake my EGLD',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Search results',
+    isArray: true,
+  })
+  @Get('library/search')
+  async searchContracts(@Query('query') query: string): Promise<any> {
+    return this.abiService.searchContracts(query);
   }
 
   @Version('beta')
