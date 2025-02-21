@@ -189,7 +189,13 @@ export class AbiService {
         }
 
         await GenericUtils.sleep(1000);
-      } catch (error) {}
+      } catch (error) {
+        console.error(
+          `Failed to fetch ABI for contract ${i + 1} of ${allVerified.length}: ${contract.address}`,
+          error,
+        );
+        continue;
+      }
     }
 
     return allVerifiedWithAbi;

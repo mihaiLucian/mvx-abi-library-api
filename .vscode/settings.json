@@ -1,7 +1,7 @@
 {
   "editor.formatOnSave": true,
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "always"
+    "source.fixAll.eslint": "explicit"
   },
   "editor.defaultFormatter": "esbenp.prettier-vscode",
   "prettier.requireConfig": true,
@@ -15,5 +15,11 @@
     }
   },
   "sarif-viewer.connectToGithubCodeScanning": "off",
-  "typescript.preferences.autoImportFileExcludePatterns": ["@nestjs/axios/*"]
+  "typescript.preferences.autoImportFileExcludePatterns": ["@nestjs/axios/*"],
+  "eslint.enable": true,
+  "eslint.format.enable": true,
+  "eslint.lintTask.enable": true,
+  "eslint.run": "onType",
+  "typescript.validate.enable": true,
+  "eslint.validate": ["typescript"]
 }

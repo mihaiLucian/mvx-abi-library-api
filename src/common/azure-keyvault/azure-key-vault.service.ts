@@ -18,40 +18,42 @@ export class AzureKeyVaultService {
   constructor() {}
 
   async initialize(): Promise<void> {
-    if (this.initializationPromise) {
+    if (this.initializationPromise !== null) {
       return this.initializationPromise;
     }
 
-    this.initializationPromise = (async () => {
-      try {
-        const vaultUrl = process.env.AZURE_KEY_VAULT_ENDPOINT;
-        if (!vaultUrl) {
-          throw new Error('Azure Key Vault Endpoint is not configured');
-        }
-
-        const credential = new DefaultAzureCredential();
-        this.client = new SecretClient(vaultUrl, credential);
-        this.logger.log('Azure Key Vault client initialized successfully');
-      } catch (error) {
-        this.logger.error('Failed to initialize Azure Key Vault client', error);
-        this.initializationPromise = null;
-        throw error;
+    try {
+      const vaultUrl = process.env.AZURE_KEY_VAULT_ENDPOINT;
+      if (!vaultUrl) {
+        throw new Error('Azure Key Vault Endpoint is not configured');
       }
-    })();
+
+      const credential = new DefaultAzureCredential();
+      this.client = new SecretClient(vaultUrl, credential);
+      this.logger.log('Azure Key Vault client initialized successfully');
+      this.initializationPromise = Promise.resolve();
+    } catch (error) {
+      this.logger.error('Failed to initialize Azure Key Vault client', error);
+      this.initializationPromise = null;
+      throw error;
+    }
 
     return this.initializationPromise;
   }
 
-  private ensureInitialized(): void {
+  private ensureInitialized(): Promise<void> {
     if (!this.client) {
-      throw new Error(
-        'Azure Key Vault service is not initialized. Call initialize() first',
+      return Promise.reject(
+        new Error(
+          'Azure Key Vault service is not initialized. Call initialize() first',
+        ),
       );
     }
+    return Promise.resolve();
   }
 
   async getSecret(secretName: string): Promise<string | null> {
-    this.ensureInitialized();
+    await this.ensureInitialized();
     try {
       const result = await this.client.getSecret(secretName);
       return result.value || null;
