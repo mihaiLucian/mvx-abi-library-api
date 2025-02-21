@@ -10,17 +10,18 @@ import { AzureKeyVaultService } from './common/azure-keyvault/azure-key-vault.se
 
 async function bootstrap() {
   config(); // Initialize dotenv
+
+  if (process.env.NODE_ENV === 'production') {
+    const keyVaultService = new AzureKeyVaultService();
+    await keyVaultService.loadAndSetRequiredSecrets();
+  }
+
   const app = await NestFactory.create<NestExpressApplication>(
     PublicAppModule,
     {
       bufferLogs: false,
     },
   );
-
-  if (process.env.NODE_ENV === 'production') {
-    const keyVaultService = app.get(AzureKeyVaultService);
-    await keyVaultService.loadAndSetRequiredSecrets();
-  }
 
   app.enableVersioning({
     type: VersioningType.URI,

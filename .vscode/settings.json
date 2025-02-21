@@ -19,7 +19,7 @@
   "eslint.enable": true,
   "eslint.format.enable": true,
   "eslint.lintTask.enable": true,
-  "eslint.run": "onType",
+  "eslint.run": "onSave",
   "typescript.validate.enable": true,
   "eslint.validate": ["typescript"]
 }
