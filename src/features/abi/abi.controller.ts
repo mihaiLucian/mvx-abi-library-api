@@ -41,7 +41,7 @@ export class AbiController {
   })
   @Get('library')
   async getLibrary(): Promise<SmartContractLibraryDto[]> {
-    return this.abiService.generateAndIngestEmbeddingsForAllContracts();
+    return this.abiService.getContracts();
   }
 
   @Version('beta')
