@@ -6,7 +6,7 @@ styleMode plain
 typeface rough
 
 // Title
-title Data Processing Flowchart
+title ABI Library Architecture
 
 Data Processing Flowchart [color: lightgray] {
   ABI Data Sources [color: lightblue] {
