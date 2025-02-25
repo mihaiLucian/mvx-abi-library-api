@@ -6,7 +6,7 @@ on:
   push:
     branches: [devnet]
     paths:
-      - '**'
+      - 'src/**'
       - '.github/workflows/devnet-build-and-deploy.yml'
 
   # Allow manual trigger
