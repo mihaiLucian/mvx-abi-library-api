@@ -1,0 +1,43 @@
+flowchart-diagram
+
+direction right
+colorMode bold
+styleMode plain
+typeface rough
+
+// Title
+title ABI Library Architecture
+
+Data Processing Flowchart [color: lightgray] {
+  ABI Data Sources [color: lightblue] {
+    Verified Contract [color: lightblue, icon: check-circle]
+    ABI JSON File [color: lightblue, icon: edit]
+  }
+  
+  ETL Processing [color: lightgreen] {
+    Documentation Enrichment [color: lightgreen, icon: file-text]
+    Embedding Generation [color: lightgreen, icon: settings]
+  }
+  
+  Storage Layer [color: pink] {
+    CosmosDB [color: pink, icon: azure-cosmos-db]
+    Azure Search [color: pink, icon: azure-search-services]
+  }
+}
+
+API Service [color: lightyellow, icon: server]
+
+External Consumers [color: lightcoral, icon: users] {
+  AI Agents [color: lightcoral, icon: robot]
+  Chatbots [color: lightcoral, icon: comments]
+  Web Apps [color: lightcoral, icon: desktop]
+}
+
+// Relationships
+Verified Contract > Documentation Enrichment
+ABI JSON File > Documentation Enrichment
+Documentation Enrichment > Embedding Generation
+Embedding Generation > CosmosDB
+Embedding Generation > Azure Search
+Storage Layer <> API Service
+API Service > External Consumers
