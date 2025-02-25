@@ -10,7 +10,7 @@
 
 ## Overview
 
-MVX ABI Library is designed to serve as a primary source for external consumers such as AI agents, chatbots, and web apps. It processes ABI data sourced from verified contracts and JSON files, enriches them via ETL processes, and stores the results in scalable storage systems, making the data accessible through secure API endpoints.
+MVX ABI Library is designed to serve as a primary source for external consumers such as AI agents, chat-bots, and web apps. It processes ABI data sourced from verified contracts and JSON files, enriches them via ETL processes, and stores the results in scalable storage systems, making the data accessible through secure API endpoints.
 
 ## Features
 
@@ -38,8 +38,8 @@ Below is the architecture diagram representing the flow:
 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/mvx-ai-assistant.git
-cd mvx-ai-assistant
+git clone https://github.com/mihaiLucian/mvx-abi-library-api.git
+cd mvx-abi-library-api
 ```
 
 2. Install dependencies
