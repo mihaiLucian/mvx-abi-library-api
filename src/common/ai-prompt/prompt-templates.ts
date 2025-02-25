@@ -79,24 +79,14 @@ Smart Contract Description:
       - All details of the endpoint.
       - A concise, friendly explanation of what the endpoint does.
 
-  Return your output as a JSON object with the following structure:
-
+  Respond with a JSON markdown block following this structure:
+  Example response:
+  \`\`\`json
   {
-    "recommendedEndpoints": [
-      {
-        "endpoint": { ... },                // All details of the best matching endpoint
-        "friendlyExplanation": "..."       // A clear and concise explanation of its functionality
-      },
-      { ... }  // Additional top matches (if any), ordered by relevance
-    ],
-    "otherOptions": [
-      {
-        "endpoint": { ... },                // Details of an additional usable endpoint
-        "friendlyExplanation": "..."       // Explanation for this option
-      },
-      { ... }  // List any other relevant endpoints here
-    ]
+    "recommendedEndpoints": [/* string array of the recommended endpoint ids */], // empty array if no match
+    "otherOptions": [/* string array of other options */], // empty array if no match
   }
+  \`\`\`
 
   If no endpoint matches the user's description, return a JSON object with a "message" field stating:
   "No matching endpoint found."
@@ -104,7 +94,7 @@ Smart Contract Description:
   Important requirements:
   - Use only the information provided in the endpoints array.
   - Do not invent or hallucinate details.
-  - The output must be strictly in JSON format with no additional commentary or text.
+  - The output must be strictly in JSON markdown block format with no additional commentary or text.
 
   Inputs:
   Endpoints:

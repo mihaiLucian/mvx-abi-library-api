@@ -20,15 +20,15 @@ import { InvalidInputError, InvalidTypeError } from '../types/errors.types';
  * into Warp-compatible format for smart contract interaction.
  */
 export class AbiWarpGenerator {
-  private readonly abi: AbiDefinition;
-  private readonly meta: WarpMeta;
+  private readonly abi?: AbiDefinition;
+  private readonly meta?: WarpMeta;
 
   /**
    * Creates a new instance of AbiWarpGenerator
    * @param creator - The creator identifier for the Warp definitions
    * @param abi - The ABI definition to be transformed
    */
-  constructor(creator = 'system', abi: AbiDefinition) {
+  constructor(creator = 'system', abi?: AbiDefinition) {
     this.abi = abi;
     this.meta = {
       hash: '',
@@ -46,16 +46,19 @@ export class AbiWarpGenerator {
     if (!contractAddress?.startsWith('erd1')) {
       throw new InvalidInputError('Invalid contract address format');
     }
+    if (!this.abi) {
+      throw new InvalidInputError('ABI is required');
+    }
 
     const publicEndpoints = this.abi.endpoints.filter(
       (endpoint) => !endpoint.onlyOwner,
     );
     return publicEndpoints.map((endpoint) =>
-      this.transformEndpoint(contractAddress, this.abi.name, endpoint),
+      this.endpointToWarp(contractAddress, this.abi.name, endpoint),
     );
   }
 
-  private transformEndpoint(
+  public endpointToWarp(
     contractAddress: string,
     contractName: string,
     endpoint: AbiEndpoint,
@@ -74,7 +77,7 @@ export class AbiWarpGenerator {
     const regularInputs = this.transformInputs(endpoint.inputs);
 
     // Prepare the action object
-    const action: any = {
+    const action = {
       type: actionType,
       label: endpoint.name,
       address: contractAddress,
@@ -101,12 +104,14 @@ export class AbiWarpGenerator {
 
     return {
       protocol: WARP_CONSTANTS.PROTOCOL_VERSION,
-      name: `${contractName}:${endpoint.name}`,
+      name: `${GenericUtils.capitalizeFirstLetter(endpoint.name)} on ${contractName}`,
       title: `${GenericUtils.capitalizeFirstLetter(endpoint.name)} operation`,
       description,
-      preview: `Execute ${endpoint.name} on ${contractName}`,
+      // TODO: Research if there's a way to get some URL(maybe contract icon)
+      preview: undefined,
       actions: [action],
-      meta: this.meta,
+      // TODO: Review is meta is needed for such cases
+      // meta: this.meta,
     };
   }
 
@@ -121,15 +126,19 @@ export class AbiWarpGenerator {
       }
 
       const position = `arg:${index + 1}` as WarpInputPosition;
+      const type = this.convertType(input.type);
+      const friendlyType = this.getFriendlyTypeName(type);
+      const humanizedName = GenericUtils.humanizeString(input.name);
 
       return {
         name: input.name,
-        type: this.convertType(input.type),
+        type,
         position,
         source: 'field',
         required: !input.type.startsWith('optional<'),
         description: `Input parameter for ${input.name}`,
-        bot: `Smart contract ${input.name} parameter of type ${input.type}`,
+        // TODO: Improve this as it is not handling well comlex types like optional, list, etc
+        bot: `The ${friendlyType} value for ${humanizedName}`,
         ...this.getInputValidations(input),
       };
     });
@@ -160,11 +169,12 @@ export class AbiWarpGenerator {
 
   private createEgldInput(required: boolean): WarpActionInput {
     return {
-      name: 'EGLD Amount',
+      name: 'egldAmount',
       type: 'biguint',
       position: 'value',
       source: 'field',
       required,
+      bot: 'Amount of EGLD to send',
       description: `Amount of EGLD to send${required ? '' : ' (optional)'}`,
       min: 0,
       modifier: 'scale:18',
@@ -173,7 +183,7 @@ export class AbiWarpGenerator {
 
   private createEsdtInput(acceptedTokens?: string[]): WarpActionInput {
     return {
-      name: 'Token Amount',
+      name: 'tokenAmount',
       type: 'esdt',
       position: 'transfer',
       source: 'field',
@@ -182,7 +192,28 @@ export class AbiWarpGenerator {
         ? `Amount of tokens to send (${acceptedTokens.join(' or ')})`
         : 'Amount and type of tokens to send (optional)',
       options: acceptedTokens,
+      bot: 'Amount and token to send',
     };
+  }
+
+  private getFriendlyTypeName(type: string): string {
+    // Remove generics and get base type
+    const baseType = type.replace(/<.*>/g, '').toLowerCase();
+
+    const typeMap: Record<string, string> = {
+      address: 'wallet address',
+      biguint: 'number',
+      u64: 'number',
+      u32: 'number',
+      i64: 'number',
+      i32: 'number',
+      string: 'text',
+      bool: 'yes/no',
+      tokenidentifier: 'token identifier',
+      egldoresdttokenidentifier: 'token identifier',
+    };
+
+    return typeMap[baseType] || type;
   }
 
   /**
@@ -274,6 +305,12 @@ export class AbiWarpGenerator {
     throw new Error(`Unsupported custom type: ${customType.type}`);
   }
 
+  private extractBaseType(type: string): string {
+    // Handle nested types like option:, list:, etc.
+    const typeSegments = type.split(':');
+    return typeSegments[typeSegments.length - 1];
+  }
+
   private getInputValidations(input: AbiInput): Partial<WarpActionInput> {
     const validations: Partial<WarpActionInput> = {};
 
@@ -281,35 +318,45 @@ export class AbiWarpGenerator {
       return validations;
     }
 
+    // Extract the base type for validation
+    const baseType = this.extractBaseType(input.type);
+
     switch (true) {
-      case input.type.includes(AbiBaseType.BigUint):
-        // TODO: Think of a smarter way to get token decimals for ESDTs
+      case baseType.includes(AbiBaseType.BigUint):
         Object.assign(validations, {
           min: 0,
-          modifier: input.type === AbiBaseType.BigUint ? 'scale:18' : undefined,
+          modifier: baseType === AbiBaseType.BigUint ? 'scale:18' : undefined,
         });
         break;
 
-      case input.type.includes(AbiBaseType.Address):
+      case baseType.includes(AbiBaseType.Address):
         Object.assign(validations, {
           pattern: WARP_CONSTANTS.REGEX_PATTERNS.MULTIVERSX_ADDRESS,
           patternDescription: 'Must be a valid MultiversX address',
         });
         break;
 
-      case input.type.includes(AbiBaseType.TokenIdentifier):
-      case input.type.includes(AbiBaseType.EgldOrEsdtTokenIdentifier):
+      case baseType.includes(AbiBaseType.TokenIdentifier):
+      case baseType.includes(AbiBaseType.EgldOrEsdtTokenIdentifier):
         Object.assign(validations, {
           pattern: WARP_CONSTANTS.REGEX_PATTERNS.TOKEN_IDENTIFIER,
           patternDescription: 'Must be EGLD or a valid token identifier',
         });
         break;
 
-      case input.type.includes(AbiBaseType.Bool):
+      case baseType.includes(AbiBaseType.Bool):
         Object.assign(validations, {
           type: 'boolean',
         });
         break;
+    }
+
+    // If the type is optional (starts with option: or optional:), mark as not required
+    if (
+      input.type.startsWith('option:') ||
+      input.type.startsWith('optional:')
+    ) {
+      validations.required = false;
     }
 
     return validations;

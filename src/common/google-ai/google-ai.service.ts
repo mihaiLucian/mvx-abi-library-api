@@ -31,7 +31,7 @@ export class GoogleAiService {
   async chatCompletion(prompt: string): Promise<GoogleAiResponse> {
     try {
       const model = this.client.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash', //'gemini-1.5-flash',
       });
       const result = await model.generateContent(prompt);
 

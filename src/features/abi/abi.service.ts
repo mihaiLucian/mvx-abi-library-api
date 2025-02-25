@@ -18,6 +18,7 @@ import {
   SmartContractLibraryDto,
 } from './dtos/contract-details.dto';
 import { AzureSearchService } from 'src/common/azure-search/azure-search.service';
+import { parseJSONObjectFromText } from 'src/utils/parsing';
 
 @Injectable()
 export class AbiService {
@@ -348,66 +349,79 @@ export class AbiService {
       },
     );
     const aiResponse = await this.googleAiService.chatCompletion(prompt);
-    const aiResponseParsed = this.extractMarkdownJson(aiResponse.text);
+    const aiResponseParsed = parseJSONObjectFromText(aiResponse.text);
 
     const { recommendedEndpoints, otherOptions } = aiResponseParsed;
 
     const contractCaches = new Map<string, SmartContractDoc>();
-    const bestMatchEndpoints = [];
-    if (recommendedEndpoints) {
-      for (let index = 0; index < recommendedEndpoints.length; index++) {
-        const element = recommendedEndpoints[index];
+    const bestMatch = [];
 
-        const [address, endpoint] = element.endpoint.id.split('_');
-        let contract = contractCaches.get(address);
-        if (!contract) {
-          contract = await this.getContractByAddress(address);
-          contractCaches.set(address, contract);
-        }
+    for (let index = 0; index < recommendedEndpoints.length; index++) {
+      const id = recommendedEndpoints[index];
 
-        const endpointDetails = contract.abiJson.endpoints.find(
-          (e) => e.name === endpoint,
+      const [address, endpoint] = id.split('_');
+      let contract = contractCaches.get(address);
+      if (!contract) {
+        contract = await this.getContractByAddress(address);
+        contractCaches.set(address, contract);
+      }
+      const warpGenerator = new AbiWarpGenerator(undefined, contract.abiJson);
+      const endpointDetails = contract.abiJson.endpoints.find(
+        (e) => e.name === endpoint,
+      );
+      if (endpointDetails) {
+        const warp = warpGenerator.endpointToWarp(
+          contract.address,
+          contract.name,
+          endpointDetails,
         );
-        if (endpointDetails) {
-          bestMatchEndpoints.push({
-            address,
-            name: contract.name,
-            description: contract.description,
-            endpoint: endpointDetails,
-            friendlyExplanation:
-              recommendedEndpoints[index].friendlyExplanation,
-          });
-        }
+
+        const suggestion = {
+          contractName: contract.name,
+          contractDescription: contract.description,
+          contractAddress: address,
+          endpointDetails,
+          warp,
+        };
+
+        bestMatch.push(suggestion);
       }
     }
 
     const otherSuggestions = [];
-    if (otherOptions) {
-      for (let index = 0; index < otherOptions.length; index++) {
-        const element = otherOptions[index];
-        const [address, endpoint] = element.endpoint.id.split('_');
-        let contract = contractCaches.get(address);
-        if (!contract) {
-          contract = await this.getContractByAddress(address);
-          contractCaches.set(address, contract);
-        }
-        const endpointDetails = contract.abiJson.endpoints.find(
-          (e) => e.name === endpoint,
+    for (let index = 0; index < otherOptions.length; index++) {
+      const id = otherOptions[index];
+      const [address, endpoint] = id.split('_');
+      let contract = contractCaches.get(address);
+      if (!contract) {
+        contract = await this.getContractByAddress(address);
+        contractCaches.set(address, contract);
+      }
+      const endpointDetails = contract.abiJson.endpoints.find(
+        (e) => e.name === endpoint,
+      );
+      const warpGenerator = new AbiWarpGenerator(undefined, contract.abiJson);
+      if (endpointDetails) {
+        const warp = warpGenerator.endpointToWarp(
+          contract.address,
+          contract.name,
+          endpointDetails,
         );
-        if (endpointDetails) {
-          otherSuggestions.push({
-            address,
-            name: contract.name,
-            description: contract.description,
-            endpoint: endpointDetails,
-            friendlyExplanation: otherOptions[index].friendlyExplanation,
-          });
-        }
+
+        const suggestion = {
+          contractName: contract.name,
+          contractDescription: contract.description,
+          contractAddress: address,
+          endpointDetails,
+          warp,
+        };
+
+        otherSuggestions.push(suggestion);
       }
     }
 
     return {
-      bestMatchEndpoints,
+      bestMatch,
       otherSuggestions,
     };
   }
