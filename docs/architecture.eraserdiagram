@@ -1,5 +1,3 @@
-flowchart-diagram
-
 direction right
 colorMode bold
 styleMode plain
@@ -40,4 +38,6 @@ Documentation Enrichment > Embedding Generation
 Embedding Generation > CosmosDB
 Embedding Generation > Azure Search
 Storage Layer <> API Service
-API Service > External Consumers
+API Service >AI Agents
+API Service > Chatbots
+API Service > Web Apps
