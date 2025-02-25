@@ -73,8 +73,8 @@ Smart Contract Description:
   2. A user's description of the desired functionality.
 
   Your task is to:
-  - Analyze the provided endpoints and determine which endpoints best match the user's description.
-  - Identify the id for primary recommended endpoint that matches the best (recommendedEndpoints) along with additional other options(otherOptions) that are the next most likely usable options.
+  - Use your understanding of user intent to determine the endpoints that are best candidates for matching.
+  - Extract the id for the recommended endpoint that matches the best (recommendedEndpoints) along with additional other options(otherOptions) that are the next most likely usable options.
 
   Respond with a JSON markdown block following this structure:
   Example response:
