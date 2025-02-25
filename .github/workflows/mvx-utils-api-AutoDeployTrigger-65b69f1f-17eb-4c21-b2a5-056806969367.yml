@@ -1,0 +1,48 @@
+name: Trigger auto deployment for mvx-utils-api
+
+# When this action will be executed
+on:
+  # Automatically trigger it when detected changes in repo
+  push:
+    branches: 
+      [ devnet ]
+    paths:
+    - '**'
+    - '.github/workflows/mvx-utils-api-AutoDeployTrigger-65b69f1f-17eb-4c21-b2a5-056806969367.yml'
+
+  # Allow manual trigger 
+  workflow_dispatch:      
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    permissions: 
+      id-token: write #This is required for requesting the OIDC JWT Token
+      contents: read #Required when GH token is used to authenticate with private repo
+
+    steps:
+      - name: Checkout to the branch
+        uses: actions/checkout@v2
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.MVXUTILSAPI_AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.MVXUTILSAPI_AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.MVXUTILSAPI_AZURE_SUBSCRIPTION_ID }}
+
+      - name: Build and push container image to registry
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          appSourcePath: ${{ github.workspace }}
+          _dockerfilePathKey_: _dockerfilePath_
+          registryUrl: mvxdataapi.azurecr.io
+          registryUsername: ${{ secrets.MVXUTILSAPI_REGISTRY_USERNAME }}
+          registryPassword: ${{ secrets.MVXUTILSAPI_REGISTRY_PASSWORD }}
+          containerAppName: mvx-utils-api
+          resourceGroup: mvx-ai-assitant
+          imageToBuild: mvxdataapi.azurecr.io/mvx-utils-api:${{ github.sha }}
+          _buildArgumentsKey_: |
+            _buildArgumentsValues_
+
+
