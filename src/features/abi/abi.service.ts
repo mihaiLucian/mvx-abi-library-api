@@ -123,6 +123,7 @@ export class AbiService {
     // - xExchange: name contains MetaStaked
     // - xLaunchpad: name starts with xLaunchpad
     // erd1qqqqqqqqqqqqqpgqpa3pdmemt5l2ex80g7pksr2ettt955d66avsz76hyt
+    //
 
     const allVerified = allContracts.filter(
       (contract) =>

@@ -73,11 +73,8 @@ Smart Contract Description:
   2. A user's description of the desired functionality.
 
   Your task is to:
-  - Analyze the provided endpoints and determine which endpoints best match the user's description.
-  - Identify a primary recommended endpoint (the best match) along with additional endpoints that are the next most likely usable options.
-  - For each endpoint in your output, include:
-      - All details of the endpoint.
-      - A concise, friendly explanation of what the endpoint does.
+  - Use your understanding of user intent to determine the endpoints that are best candidates for matching.
+  - Extract the id for the recommended endpoint that matches the best (recommendedEndpoints) along with additional other options(otherOptions) that are the next most likely usable options.
 
   Respond with a JSON markdown block following this structure:
   Example response:
@@ -96,7 +93,6 @@ Smart Contract Description:
   - Do not invent or hallucinate details.
   - The output must be strictly in JSON markdown block format with no additional commentary or text.
 
-  Inputs:
   Endpoints:
   {{ABI_ENDPOINTS}}
 
