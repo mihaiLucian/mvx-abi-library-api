@@ -23,7 +23,7 @@ MVX ABI Library is designed to serve as a primary source for external consumers 
 ## Architecture
 
 Below is the architecture diagram representing the flow:
-![Architecture Diagram](docs/architecture-diagram.png)
+![](https://app.eraser.io/workspace/CnSpn47tfZm139zadObJ/preview?elements=brloMcOl6JhFOSoOyc1cdQ&type=embed)
 
 ## Getting Started
 

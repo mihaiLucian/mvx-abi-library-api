@@ -21,5 +21,6 @@
   "eslint.lintTask.enable": true,
   "eslint.run": "onSave",
   "typescript.validate.enable": true,
-  "eslint.validate": ["typescript"]
+  "eslint.validate": ["typescript"],
+  "vscode-nmake-tools.workspaceBuildDirectories": ["."]
 }
