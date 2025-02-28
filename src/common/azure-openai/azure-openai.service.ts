@@ -1,9 +1,5 @@
-import {
-  DefaultAzureCredential,
-  getBearerTokenProvider,
-} from '@azure/identity';
 import { Injectable } from '@nestjs/common';
-import OpenAI, { AzureOpenAI } from 'openai';
+import { AzureOpenAI } from 'openai';
 
 @Injectable()
 export class AzureOpenaiService {
@@ -23,7 +19,7 @@ export class AzureOpenaiService {
   async generateEmbedding(text: string) {
     const client = this.getClient();
     const response = await client.embeddings.create({
-      model: 'text-embedding-3-large',
+      model: 'text-embedding-ada-002',
       input: text,
     });
 
@@ -31,7 +27,7 @@ export class AzureOpenaiService {
   }
 
   private getClient() {
-    const deployment = 'text-embedding-3-large';
+    const deployment = 'text-embedding-ada-002';
     const apiVersion = '2024-10-21';
     const client = new AzureOpenAI({
       apiKey: this.apiKey,

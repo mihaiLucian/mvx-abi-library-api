@@ -45,7 +45,7 @@ export class AbiController {
   }
 
   @Version('beta')
-  @ApiOperation({ summary: 'Search for smart contracts' })
+  @ApiOperation({ summary: 'Search for smart contract functions' })
   @ApiQuery({
     name: 'query',
     description: 'Search query',
@@ -53,14 +53,24 @@ export class AbiController {
     required: true,
     example: 'I want to stake my EGLD',
   })
+  @ApiQuery({
+    name: 'isWarp',
+    description: 'Return response as warps',
+    type: Boolean,
+    required: false,
+    example: true,
+  })
   @ApiResponse({
     status: 200,
     description: 'Search results',
     isArray: true,
   })
   @Get('library/search')
-  async searchContracts(@Query('query') query: string): Promise<any> {
-    return this.abiService.searchContracts(query);
+  async searchContracts(
+    @Query('query') query: string,
+    @Query('isWarp') isWarp?: boolean,
+  ): Promise<any> {
+    return this.abiService.searchEndpoints(query, isWarp);
   }
 
   @Version('beta')

@@ -19,11 +19,13 @@ import {
 } from './dtos/contract-details.dto';
 import { AzureSearchService } from 'src/common/azure-search/azure-search.service';
 import { parseJSONObjectFromText } from 'src/utils/parsing';
+import { AzureOpenaiService } from 'src/common/azure-openai/azure-openai.service';
 
 @Injectable()
 export class AbiService {
   constructor(
     private readonly httpService: HttpService,
+    private readonly azureOpenAiService: AzureOpenaiService,
     private readonly googleAiService: GoogleAiService,
     private readonly cosmosDbService: CosmosDbService,
     private readonly azureSearchService: AzureSearchService,
@@ -60,7 +62,11 @@ export class AbiService {
     return warpGenerator.generateWarps(address);
   }
 
-  async enrichAbiDefinition(requestBody: GenerateWarpRequestDto) {
+  async enrichAbiDefinition(
+    requestBody: GenerateWarpRequestDto,
+    description: string,
+    name: string,
+  ) {
     const simplifiedAbi: AbiDefinition = {
       name: requestBody.abiJson.name,
       endpoints: requestBody.abiJson.endpoints,
@@ -70,9 +76,8 @@ export class AbiService {
       AIPromptTemplateName.ABI_DOC_ENRICHER,
       {
         ABI_JSON: JSON.stringify(simplifiedAbi),
-        CONTRACT_DESCRIPTION:
-          'NFT Staking allows users to stake their NFTs and earn rewards. Creators are able to create and manage their own staking pools',
-        CONTRACT_NAME: 'XOXNO: NFT Staking',
+        CONTRACT_DESCRIPTION: description,
+        CONTRACT_NAME: name,
       },
     );
 
@@ -212,18 +217,13 @@ export class AbiService {
     return allVerifiedWithAbi;
   }
 
-  async addContractManually() {
-    const abiJson = await this.httpService.get<any>(
-      'https://trustmarket.blob.core.windows.net/smartcontractabi/staking-xoxno.json',
-    );
-
+  async addContractManually(
+    abiJson: AbiDefinition,
+    name: string,
+    description: string,
+    address: string,
+  ) {
     if (abiJson) {
-      const name = 'XOXNO: NFT Staking';
-      const description =
-        'NFT Staking allows users to stake their NFTs and earn rewards. Creators are able to create and manage their own staking pools';
-      const address =
-        'erd1qqqqqqqqqqqqqpgqvpkd3g3uwludduv3797j54qt6c888wa59w2shntt6z';
-
       const simplifiedAbi: AbiDefinition = {
         name: name,
         endpoints: abiJson.endpoints,
@@ -255,8 +255,6 @@ export class AbiService {
         address: address,
         name,
         description,
-        ownerAddress:
-          'erd1vn9s8uj4e7r6skmqfw5py3hxnluw3ftv6dh47yt449vtvdnn9w2stmwm7l',
         abiJson,
         codeHash: '',
         id: `sc_${address}`,
@@ -298,7 +296,7 @@ export class AbiService {
   async generateAndIngestEmbeddingsForEndpoints(contractDoc: SmartContractDoc) {
     const parsedData: any[] = [];
     for (const endpoint of contractDoc.abiJson.endpoints) {
-      const embeddingResponse = await this.googleAiService.generateEmbedding(
+      const embeddingResponse = await this.azureOpenAiService.generateEmbedding(
         endpoint.docs[0],
       );
 
@@ -307,7 +305,7 @@ export class AbiService {
         description: endpoint.docs[0],
         type: 'endpoint',
         id: `${contractDoc.address}_${endpoint.name}`,
-        embeddings: embeddingResponse.embedding.values,
+        embeddings: embeddingResponse[0].embedding,
       });
     }
 
@@ -333,66 +331,23 @@ export class AbiService {
     return resources;
   }
 
-  async searchContracts(query: string) {
+  async searchEndpoints(query: string, isWarp = false) {
     const embeddingResponse =
-      await this.googleAiService.generateEmbedding(query);
+      await this.azureOpenAiService.generateEmbedding(query);
 
-    const searchResults = await this.azureSearchService.hybridSearch(
-      query,
-      embeddingResponse.embedding.values,
-    );
-
-    const prompt = PromptGenerator.renderTemplate(
-      AIPromptTemplateName.BEST_ABI_ENDPOINT_MATCH,
-      {
-        ABI_ENDPOINTS: JSON.stringify(searchResults),
-        USER_DESCRIPTION: query,
-      },
-    );
-    const aiResponse = await this.googleAiService.chatCompletion(prompt);
-    const aiResponseParsed = parseJSONObjectFromText(aiResponse.text);
-
-    const { recommendedEndpoints, otherOptions } = aiResponseParsed;
+    const searchResults = await this.azureSearchService.hybridSearch({
+      searchText: query,
+      vector: embeddingResponse[0].embedding,
+      top: 10,
+    });
 
     const contractCaches = new Map<string, SmartContractDoc>();
-    const bestMatch = [];
 
-    for (let index = 0; index < recommendedEndpoints.length; index++) {
-      const id = recommendedEndpoints[index];
+    const results = [];
+    for (let index = 0; index < searchResults.length; index++) {
+      const result = searchResults[index];
 
-      const [address, endpoint] = id.split('_');
-      let contract = contractCaches.get(address);
-      if (!contract) {
-        contract = await this.getContractByAddress(address);
-        contractCaches.set(address, contract);
-      }
-      const warpGenerator = new AbiWarpGenerator(undefined, contract.abiJson);
-      const endpointDetails = contract.abiJson.endpoints.find(
-        (e) => e.name === endpoint,
-      );
-      if (endpointDetails) {
-        const warp = warpGenerator.endpointToWarp(
-          contract.address,
-          contract.name,
-          endpointDetails,
-        );
-
-        const suggestion = {
-          contractName: contract.name,
-          contractDescription: contract.description,
-          contractAddress: address,
-          endpointDetails,
-          warp,
-        };
-
-        bestMatch.push(suggestion);
-      }
-    }
-
-    const otherSuggestions = [];
-    for (let index = 0; index < otherOptions.length; index++) {
-      const id = otherOptions[index];
-      const [address, endpoint] = id.split('_');
+      const [address, endpoint] = result.document.id.split('_');
       let contract = contractCaches.get(address);
       if (!contract) {
         contract = await this.getContractByAddress(address);
@@ -401,29 +356,27 @@ export class AbiService {
       const endpointDetails = contract.abiJson.endpoints.find(
         (e) => e.name === endpoint,
       );
-      const warpGenerator = new AbiWarpGenerator(undefined, contract.abiJson);
       if (endpointDetails) {
-        const warp = warpGenerator.endpointToWarp(
-          contract.address,
-          contract.name,
-          endpointDetails,
-        );
-
-        const suggestion = {
-          contractName: contract.name,
-          contractDescription: contract.description,
-          contractAddress: address,
-          endpointDetails,
-          warp,
-        };
-
-        otherSuggestions.push(suggestion);
+        const warpGenerator = new AbiWarpGenerator(undefined, contract.abiJson);
+        if (isWarp) {
+          results.push(
+            warpGenerator.endpointToWarp(
+              contract.address,
+              contract.name,
+              endpointDetails,
+            ),
+          );
+        } else {
+          results.push({
+            contractName: contract.name,
+            contractDescription: contract.description,
+            contractAddress: address,
+            endpointDetails,
+          });
+        }
       }
     }
 
-    return {
-      bestMatch,
-      otherSuggestions,
-    };
+    return results;
   }
 }
