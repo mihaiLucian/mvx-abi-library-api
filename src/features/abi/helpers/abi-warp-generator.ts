@@ -478,6 +478,7 @@ export class AbiWarpGenerator {
         : 'Amount and type of tokens to send (optional)',
       options: acceptedTokens,
       bot: 'Amount and token to send',
+      modifier: 'scale:18',
     };
   }
 

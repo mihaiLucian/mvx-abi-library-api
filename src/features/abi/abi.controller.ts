@@ -26,13 +26,13 @@ import {
 } from './dtos/contract-details.dto';
 import { ParseAddressPipe } from 'src/common/pipes/parse-address.pipe';
 
-@ApiTags('ABI Utilities')
+@ApiTags('ABI')
 @Controller('abi')
 export class AbiController {
   constructor(private readonly abiService: AbiService) {}
 
   @Version('beta')
-  @ApiOperation({ summary: 'Get library of smart contract ABIs' })
+  @ApiOperation({ summary: 'Explore smart contract ABIs library' })
   @ApiResponse({
     status: 200,
     description: 'Library of contracts',
@@ -45,7 +45,7 @@ export class AbiController {
   }
 
   @Version('beta')
-  @ApiOperation({ summary: 'Search for smart contract functions' })
+  @ApiOperation({ summary: 'Search for smart contract endpoints' })
   @ApiQuery({
     name: 'query',
     description: 'Search query',
@@ -74,7 +74,7 @@ export class AbiController {
   }
 
   @Version('beta')
-  @ApiOperation({ summary: 'Get smart contract details and ABI by address' })
+  @ApiOperation({ summary: 'Get smart contract details ABI by address' })
   @ApiParam({
     name: 'address',
     description: 'Smart contract address',
