@@ -32,7 +32,6 @@ export class SwaggerDocumentBuilder {
       swaggerOptions: {
         displayRequestDuration: true,
         defaultModelsExpandDepth: -1,
-        docExpansion: 'none',
       },
       jsonDocumentUrl: '/swagger.json',
       yamlDocumentUrl: '/swagger.yaml',
