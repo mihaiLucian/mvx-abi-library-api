@@ -127,7 +127,7 @@ export class AbiWarpGenerator {
       preview: this.generateDefaultIconUrl(endpoint.name),
       actions: [action],
       // TODO: Review is meta is needed for such cases
-      // meta: this.meta,
+      meta: this.meta,
     };
   }
 

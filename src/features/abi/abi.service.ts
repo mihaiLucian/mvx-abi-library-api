@@ -18,7 +18,6 @@ import {
   SmartContractLibraryDto,
 } from './dtos/contract-details.dto';
 import { AzureSearchService } from 'src/common/azure-search/azure-search.service';
-import { parseJSONObjectFromText } from 'src/utils/parsing';
 import { AzureOpenaiService } from 'src/common/azure-openai/azure-openai.service';
 
 @Injectable()
@@ -331,7 +330,7 @@ export class AbiService {
     return resources;
   }
 
-  async searchEndpoints(query: string, isWarp = false) {
+  async searchEndpoints(query: string, isWarp = false, creator?: string) {
     const embeddingResponse =
       await this.azureOpenAiService.generateEmbedding(query);
 
@@ -357,7 +356,7 @@ export class AbiService {
         (e) => e.name === endpoint,
       );
       if (endpointDetails) {
-        const warpGenerator = new AbiWarpGenerator(undefined, contract.abiJson);
+        const warpGenerator = new AbiWarpGenerator(creator, contract.abiJson);
         if (isWarp) {
           results.push(
             warpGenerator.endpointToWarp(

@@ -60,6 +60,13 @@ export class AbiController {
     required: false,
     example: true,
   })
+  @ApiQuery({
+    name: 'creator',
+    description: 'Creator of the warp',
+    type: String,
+    required: false,
+    example: 'userX',
+  })
   @ApiResponse({
     status: 200,
     description: 'Search results',
@@ -69,8 +76,9 @@ export class AbiController {
   async searchContracts(
     @Query('query') query: string,
     @Query('isWarp') isWarp?: boolean,
+    @Query('creator') creator?: string,
   ): Promise<any> {
-    return this.abiService.searchEndpoints(query, isWarp);
+    return this.abiService.searchEndpoints(query, isWarp, creator);
   }
 
   @Version('beta')
