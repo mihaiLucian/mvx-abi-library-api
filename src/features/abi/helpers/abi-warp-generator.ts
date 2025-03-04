@@ -14,6 +14,7 @@ import {
 import { GenericUtils } from 'src/utils/generic.utils';
 import { WARP_CONSTANTS } from '../constants/warp.constants';
 import { InvalidInputError, InvalidTypeError } from '../types/errors.types';
+import { Config } from '@vleap/warps';
 
 /**
  * AbiWarpGenerator class handles the transformation of MultiversX ABI definitions
@@ -120,13 +121,13 @@ export class AbiWarpGenerator {
     }
 
     return {
-      protocol: WARP_CONSTANTS.PROTOCOL_VERSION,
+      protocol: Config.LatestProtocolVersion,
       name: `${GenericUtils.capitalizeFirstLetter(endpoint.name)} on ${contractName}`,
       title: `${GenericUtils.capitalizeFirstLetter(endpoint.name)} operation`,
       description,
       preview: this.generateDefaultIconUrl(endpoint.name),
       actions: [action],
-      // TODO: Review is meta is needed for such cases
+      // TODO: Review if meta is needed for such cases
       meta: this.meta,
     };
   }
