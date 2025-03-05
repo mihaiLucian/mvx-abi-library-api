@@ -5,9 +5,8 @@ on:
   # Automatically trigger it when detected changes in repo
   push:
     branches: [devnet]
-    paths:
-      - 'src/**'
-      - '.github/workflows/devnet-build-and-deploy.yml'
+    paths-ignore:
+      - 'docs/**'
 
   # Allow manual trigger
   workflow_dispatch:
