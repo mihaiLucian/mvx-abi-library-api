@@ -32,16 +32,6 @@ async function bootstrap() {
   app.disable('etag');
   app.useStaticAssets(join(__dirname, '..', 'public'));
 
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-        excludeExtraneousValues: true,
-      },
-    }),
-  );
-
   // set swagger
   const swaggerDocumentBuilder = new SwaggerDocumentBuilder(app);
   swaggerDocumentBuilder.setupSwagger();

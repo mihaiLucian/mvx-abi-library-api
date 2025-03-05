@@ -26,13 +26,13 @@ import {
 } from './dtos/contract-details.dto';
 import { ParseAddressPipe } from 'src/common/pipes/parse-address.pipe';
 
-@ApiTags('ABI Utilities')
+@ApiTags('ABI')
 @Controller('abi')
 export class AbiController {
   constructor(private readonly abiService: AbiService) {}
 
   @Version('beta')
-  @ApiOperation({ summary: 'Get library of smart contract ABIs' })
+  @ApiOperation({ summary: 'Explore smart contract ABIs library' })
   @ApiResponse({
     status: 200,
     description: 'Library of contracts',
@@ -45,7 +45,7 @@ export class AbiController {
   }
 
   @Version('beta')
-  @ApiOperation({ summary: 'Search for smart contracts' })
+  @ApiOperation({ summary: 'Search for smart contract endpoints' })
   @ApiQuery({
     name: 'query',
     description: 'Search query',
@@ -53,18 +53,36 @@ export class AbiController {
     required: true,
     example: 'I want to stake my EGLD',
   })
+  @ApiQuery({
+    name: 'isWarp',
+    description: 'Return response as warps',
+    type: Boolean,
+    required: false,
+    example: true,
+  })
+  @ApiQuery({
+    name: 'creator',
+    description: 'Creator of the warp',
+    type: String,
+    required: false,
+    example: 'userX',
+  })
   @ApiResponse({
     status: 200,
     description: 'Search results',
     isArray: true,
   })
   @Get('library/search')
-  async searchContracts(@Query('query') query: string): Promise<any> {
-    return this.abiService.searchContracts(query);
+  async searchContracts(
+    @Query('query') query: string,
+    @Query('isWarp') isWarp?: boolean,
+    @Query('creator') creator?: string,
+  ): Promise<any> {
+    return this.abiService.searchEndpoints(query, isWarp, creator);
   }
 
   @Version('beta')
-  @ApiOperation({ summary: 'Get smart contract details and ABI by address' })
+  @ApiOperation({ summary: 'Get smart contract details ABI by address' })
   @ApiParam({
     name: 'address',
     description: 'Smart contract address',

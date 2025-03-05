@@ -10,10 +10,12 @@ export class SwaggerDocumentBuilder {
 
   private buildConfig() {
     const docBuilder = new DocumentBuilder()
-      .setTitle('MultiversX Smart Contract Explorer APIs')
+      .setTitle('MultiversX ABI Library')
       .setVersion('beta')
       // .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' })
-      .setDescription('APIs to explore MultiversX Smart Contracts');
+      .setDescription(
+        'A set of APIs to discover, explore and interact with MultiversX smart contracts',
+      );
 
     return docBuilder.build();
   }
@@ -25,10 +27,11 @@ export class SwaggerDocumentBuilder {
   public setupSwagger() {
     const document = this.createDocument();
     const options: SwaggerCustomOptions = {
-      customSiteTitle: 'MVX SC Explorer',
+      customSiteTitle: 'MVX ABI Library',
       // customfavIcon: '/favicon.png',
       swaggerOptions: {
         displayRequestDuration: true,
+        defaultModelsExpandDepth: -1,
       },
       jsonDocumentUrl: '/swagger.json',
       yamlDocumentUrl: '/swagger.yaml',

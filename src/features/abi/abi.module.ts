@@ -6,6 +6,7 @@ import { GoogleAiModule } from 'src/common/google-ai/google-ai.module';
 import { CosmosDbContainer } from 'src/common/cosmos-db/entities/cosmos-db-container.enum';
 import { HttpModule } from 'src/common/http/http.module';
 import { AzureSearchModule } from 'src/common/azure-search/azure-search.module';
+import { AzureOpenaiModule } from 'src/common/azure-openai/azure-openai.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { AzureSearchModule } from 'src/common/azure-search/azure-search.module';
     GoogleAiModule,
     HttpModule,
     AzureSearchModule,
+    AzureOpenaiModule,
   ],
   exports: [AbiService],
   controllers: [AbiController],
