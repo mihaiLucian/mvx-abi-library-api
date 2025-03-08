@@ -306,8 +306,8 @@ export class AzureSearchService {
         kind: 'vector',
         vector,
         fields: ['embeddings'],
-        kNearestNeighborsCount: 10,
-        weight: 3,
+        kNearestNeighborsCount: 15,
+        weight: 1,
         exhaustive: true,
       };
 
