@@ -21,19 +21,30 @@ export type ComplexAbiType =
   | `Option<${AbiBaseType}>`
   | `optional<${AbiBaseType}>`
   | `List<${AbiBaseType}>`
-  | `variadic<${AbiBaseType}>`;
+  | `variadic<${AbiBaseType}>`
+  | `multi<${AbiBaseType}>`;
 
 export enum AbiTypePattern {
   Optional = 'optional<',
   List = 'List<',
   Variadic = 'variadic<',
   Option = 'Option<',
+  Multi = 'multi<',
 }
 
 export class AbiInput {
   name: string;
   type: string;
   multi_arg?: boolean;
+  /**
+   * Additional information for input processing and validation
+   * Can contain dynamic parameters like:
+   * - scale: A value for token decimal scaling
+   * - min/max: Value constraints
+   * - pattern: Custom validation pattern
+   * - Any future properties needed for advanced validation
+   */
+  additionalInfo?: Record<string, unknown>;
 }
 
 export class AbiOutput {
@@ -49,10 +60,12 @@ export class AbiEndpoint {
   inputs?: AbiInput[];
   outputs?: AbiOutput[];
   onlyOwner?: boolean;
+  additionalInfo?: Record<string, unknown>;
 }
 
 export class AbiDefinition {
   name: string;
+  docs?: string[];
   endpoints: AbiEndpoint[];
   types?: { [key: string]: { [key: string]: any } };
 }

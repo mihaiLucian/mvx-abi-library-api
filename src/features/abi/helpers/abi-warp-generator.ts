@@ -91,7 +91,7 @@ export class AbiWarpGenerator {
         : WarpActionType.Contract;
 
     // Separate payment inputs from regular inputs
-    const paymentInputs = this.createPaymentInputs(endpoint.payableInTokens);
+    const paymentInputs = this.createPaymentInputs(endpoint);
     const regularInputs = this.transformInputs(endpoint.inputs);
 
     // Prepare the action object
@@ -415,7 +415,8 @@ export class AbiWarpGenerator {
    * @param payableTokens - Array of token identifiers that the endpoint accepts as payment
    * @returns Array of payment input fields configured for the accepted tokens
    */
-  private createPaymentInputs(payableTokens?: string[]): WarpActionInput[] {
+  private createPaymentInputs(endpoint: AbiEndpoint): WarpActionInput[] {
+    const payableTokens = endpoint.payableInTokens;
     if (!payableTokens?.length) {
       return [];
     }
@@ -430,7 +431,17 @@ export class AbiWarpGenerator {
 
     // Add EGLD input if EGLD is accepted
     if (payableTokens.includes('EGLD')) {
-      inputs.push(this.createEgldInput(true));
+      const egldInput = this.createEgldInput(true);
+      if (endpoint.additionalInfo) {
+        const { minEgldAmount, maxEgldAmount } = endpoint.additionalInfo;
+        if (minEgldAmount) {
+          egldInput.min = Number(minEgldAmount);
+        }
+        if (maxEgldAmount) {
+          egldInput.max = Number(maxEgldAmount);
+        }
+      }
+      inputs.push(egldInput);
     }
 
     // Add ESDT input if any tokens are accepted
@@ -711,13 +722,17 @@ export class AbiWarpGenerator {
   }
 
   /**
-   * Generates appropriate validation rules for an input based on its type
+   * Generates appropriate validation rules for an input based on its type and additional info
    *
    * Different types require different validation rules:
    * - Number types have minimum values
    * - Address types have format validation
    * - Token identifiers have pattern requirements
    * - Optional types are marked as not required
+   *
+   * Also processes dynamic additionalInfo parameters:
+   * - scale: transformed to modifier:'scale:[value]'
+   * - (future properties can be easily added)
    *
    * @param input - The ABI input to generate validations for
    * @returns An object with validation rules applicable to the input type
@@ -732,6 +747,7 @@ export class AbiWarpGenerator {
     // Extract the base type for validation
     const baseType = this.extractBaseType(input.type);
 
+    // Process type-based validations
     switch (true) {
       case baseType.includes(AbiBaseType.BigUint):
         Object.assign(validations, {
@@ -762,6 +778,11 @@ export class AbiWarpGenerator {
         break;
     }
 
+    // Process additionalInfo parameters if present
+    if (input.additionalInfo) {
+      this.processAdditionalInfo(input.additionalInfo, validations);
+    }
+
     // If the type is optional (starts with option: or optional:), mark as not required
     if (
       input.type.startsWith('option:') ||
@@ -771,6 +792,48 @@ export class AbiWarpGenerator {
     }
 
     return validations;
+  }
+
+  /**
+   * Process additional information for an input to generate dynamic validations
+   *
+   * Handles various properties that might be present in additionalInfo:
+   * - scale: Converted to modifier property with format "scale:[value]"
+   *
+   * @param additionalInfo - Object containing extra information for the input
+   * @param validations - The validations object to update
+   */
+  private processAdditionalInfo(
+    additionalInfo: Record<string, unknown>,
+    validations: Partial<WarpActionInput>,
+  ): void {
+    // Handle scale property - used for token amounts with different decimal precision
+    if (additionalInfo.scale) {
+      validations.modifier = `scale:${additionalInfo.scale}`;
+    }
+
+    // Handle min/max values if provided
+    if (additionalInfo.min !== undefined) {
+      validations.min = Number(additionalInfo.min);
+    }
+
+    if (additionalInfo.max !== undefined) {
+      validations.max = Number(additionalInfo.max);
+    }
+
+    // Handle custom patterns
+    if (additionalInfo.pattern) {
+      validations.pattern = String(additionalInfo.pattern);
+
+      if (additionalInfo.patternDescription) {
+        validations.patternDescription = String(
+          additionalInfo.patternDescription,
+        );
+      }
+    }
+
+    // Add more handlers for future properties here
+    // This design makes it easy to extend with new properties without changing the main function structure
   }
 
   /**
