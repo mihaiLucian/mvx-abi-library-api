@@ -1,10 +1,10 @@
 direction right
 colorMode bold
 styleMode plain
-typeface rough
+typeface mono
 
 // Title
-title ABI Library Architecture
+title ABI Library Service Architecture
 
 Data Processing Flowchart [color: lightgray] {
   ABI Data Sources [color: lightblue] {
@@ -26,18 +26,19 @@ Data Processing Flowchart [color: lightgray] {
 API Service [color: lightyellow, icon: server]
 
 External Consumers [color: lightcoral, icon: users] {
-  AI Agents [color: lightcoral, icon: robot]
-  Chatbots [color: lightcoral, icon: comments]
-  Web Apps [color: lightcoral, icon: desktop]
+  Retail Users {
+    AI Agents [color: lightcoral, icon: robot]
+    Chatbots [color: lightcoral, icon: comments]
+    Web Apps [color: lightcoral, icon: desktop]
+  }
+  Developers [icon: computer]
 }
 
 // Relationships
 Verified Contract > Documentation Enrichment
 ABI JSON File > Documentation Enrichment
 Documentation Enrichment > Embedding Generation
-Embedding Generation > CosmosDB
-Embedding Generation > Azure Search
-Storage Layer <> API Service
-API Service >AI Agents
-API Service > Chatbots
-API Service > Web Apps
+ETL Processing > CosmosDB, Azure Search
+Azure Search <--> API Service : Hybrid Search 
+CosmosDB <--> API Service
+API Service <--> AI Agents, Chatbots, Web Apps, Developers  

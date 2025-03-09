@@ -19,4 +19,25 @@ export class AbiParser {
   public generateWarps(contractAddress: string) {
     return this.warpGenerator.generateWarps(contractAddress);
   }
+
+  private cleanDocumentation(docs: string[] | undefined): string[] {
+    if (!docs || !Array.isArray(docs)) {
+      return [];
+    }
+    const cleanedDoc = docs.filter(Boolean).join(' ').trim();
+    return cleanedDoc ? [cleanedDoc] : [];
+  }
+
+  public cleanAbiDocs(): AbiDefinition {
+    const cleanedAbi: AbiDefinition = {
+      ...this.abi,
+      docs: this.cleanDocumentation(this.abi.docs),
+      endpoints: this.abi.endpoints.map((endpoint) => ({
+        ...endpoint,
+        docs: this.cleanDocumentation(endpoint.docs),
+      })),
+    };
+
+    return cleanedAbi;
+  }
 }

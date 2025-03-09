@@ -36,7 +36,7 @@ Now, using these guidelines, generate a response that meets the above criteria.
   ABI_DOC_ENRICHER: `
 You are an expert technical writer in blockchain and smart contracts. Process the provided ABI JSON for a MultiversX smart contract and improve the documentation for each endpoint. The ABI JSON contains an "endpoints" array where each endpoint has a "name", "inputs", "outputs", and optionally a "docs" array (existing documentation).
 
-Use the smart contract's name and description to accurately infer each endpoint's purpose. For example, if the contract is a marketplace, an endpoint named "withdraw" might be intended for delisting or removing an asset from sale rather than for transferring funds.
+Use the smart contract's name and description to accurately infer each endpoint's purpose. For example, if the contract is a marketplace, an endpoint named "withdraw" might be intended for de-listing or removing an asset from sale rather than for transferring funds.
 
 Endpoint details:
 - **Mutability:** "readonly" means a query; "mutable" means a contract call.

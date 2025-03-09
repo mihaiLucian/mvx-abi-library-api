@@ -292,20 +292,27 @@ export class AbiService {
     return resources as SmartContractLibraryDto[];
   }
 
-  async generateAndIngestEmbeddingsForEndpoints(contractDoc: SmartContractDoc) {
+  async generateAndIngestEmbeddings(
+    contractDoc: SmartContractDoc,
+    endpointsToKeep: string[] = [],
+  ) {
     const parsedData: any[] = [];
     for (const endpoint of contractDoc.abiJson.endpoints) {
-      const embeddingResponse = await this.azureOpenAiService.generateEmbedding(
-        endpoint.docs[0],
-      );
+      if (endpointsToKeep.length && !endpointsToKeep.includes(endpoint.name)) {
+        continue;
+      }
+      if (endpoint.docs.length) {
+        const embeddingResponse =
+          await this.azureOpenAiService.generateEmbedding(endpoint.docs[0]);
 
-      parsedData.push({
-        name: endpoint.name,
-        description: endpoint.docs[0],
-        type: 'endpoint',
-        id: `${contractDoc.address}_${endpoint.name}`,
-        embeddings: embeddingResponse[0].embedding,
-      });
+        parsedData.push({
+          name: endpoint.name,
+          description: endpoint.docs[0],
+          type: 'endpoint',
+          id: `${contractDoc.address}_${endpoint.name}`,
+          embeddings: embeddingResponse[0].embedding,
+        });
+      }
     }
 
     await this.azureSearchService.mergeOrUploadDocuments(parsedData);
@@ -324,7 +331,7 @@ export class AbiService {
       );
 
     for (const contractDoc of resources) {
-      await this.generateAndIngestEmbeddingsForEndpoints(contractDoc);
+      await this.generateAndIngestEmbeddings(contractDoc);
     }
 
     return resources;
