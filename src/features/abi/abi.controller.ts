@@ -51,7 +51,7 @@ export class AbiController {
     description: 'Search query',
     type: String,
     required: true,
-    example: 'I want to stake my EGLD',
+    example: 'I want to delegate my EGLD',
   })
   @ApiQuery({
     name: 'isWarp',

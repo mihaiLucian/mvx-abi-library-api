@@ -3,7 +3,7 @@
  */
 export const WARP_CONSTANTS = {
   PROTOCOL_VERSION: 'warp:0.4.0',
-  DEFAULT_GAS_LIMIT: 60000000,
+  DEFAULT_GAS_LIMIT: 600_000_000,
   TYPE_MAPPINGS: {
     Address: 'address',
     BigUint: 'biguint',
